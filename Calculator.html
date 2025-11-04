@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Calculator</title>
+    <!-- Local CSS (converted from Tailwind utilities) -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        /* Theme variables for dark and light modes */
+        html.dark {
+            --bg-body: #0d1117;
+            --calc-bg: #111827; /* gray-900 */
+            --panel-bg: #1f2937; /* gray-800 */
+            --muted: #9ca3af; /* gray-400 */
+            --muted-2: #6b7280; /* gray-500 */
+            --primary-700: #0f766e; /* teal-700 */
+            --primary-600: #0ea5a4; /* teal-600 */
+            --primary-500: #14b8a6; /* teal-500 */
+            --primary-400: #2dd4bf; /* teal-400 */
+            --text: #ffffff;
+            --panel-shadow: rgba(0,0,0,0.5);
+            --ring-color: rgba(20,184,166,0.5); /* teal-500/50 */
+        }
+
+        html.light {
+            --bg-body: #f3f4f6; /* gray-100 */
+            --calc-bg: #ffffff;
+            --panel-bg: #e5e7eb; /* gray-200 */
+            --muted: #6b7280; /* gray-500 */
+            --muted-2: #4b5563; /* gray-600 */
+            --primary-700: #0e7490; /* cyan-700 used for light mode */
+            --primary-600: #0891b2; /* cyan-600 */
+            --primary-500: #06b6d4; /* cyan-500 */
+            --primary-400: #22d3ee; /* cyan-400 */
+            --text: #0f172a; /* gray-900 */
+            --panel-shadow: rgba(75,85,99,0.35);
+            --ring-color: rgba(8,145,178,0.35); /* cyan-600/50 */
+        }
+
+        /* Base styles */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        /* Calculator container */
+        #calculator, .calculator {
+            width: 100%;
+            max-width: 24rem; /* ~384px (Tailwind max-w-sm) */
+            border-radius: 1.5rem; /* rounded-3xl */
+            padding: 1.5rem; /* p-6 */
+            background-color: var(--calc-bg);
+            box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            position: relative;
+        }
+
+        /* Simulate the Tailwind ring used on the container */
+        #calculator::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow: 0 0 0 2px var(--ring-color);
+            mix-blend-mode: normal;
+        }
+
+        /* Mode toggle container */
+        .mode-toggle-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1rem;
+        }
+
+        /* Display area */
+        .display-area {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            background-color: var(--panel-bg);
+            box-shadow: inset 0 -6px 20px var(--panel-shadow);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Previous / current texts */
+        #previous-operand {
+            font-size: 0.875rem; /* text-sm */
+            height: 1.5rem;
+            text-align: right;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #current-operand {
+            font-size: 2.5rem; /* approx text-5xl */
+            font-weight: 800;
+            height: 4rem;
+            text-align: right;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Button grid */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem; /* gap-3 */
+        }
+
+        /* Button base */
+        button {
+            border: none;
+            cursor: pointer;
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 0.75rem 0.5rem;
+            font-family: inherit;
+            transition: background-color 0.2s ease, transform 0.08s ease-out, box-shadow 0.2s ease;
+            user-select: none;
+        }
+
+        /* Button animation (pressed state) */
+        .btn-animation { transform: scale(1); }
+        .btn-animation:active { transform: scale(0.95); box-shadow: inset 0 0 10px var(--panel-shadow); }
+
+        /* Primary action (AC) - spans two columns */
+        .clear {
+            grid-column: auto / span 2; /* clear spans two columns in original */
+            font-weight: 600;
+            background-color: var(--primary-700);
+            color: #fff;
+        }
+
+        .delete {
+            font-weight: 600;
+            background-color: var(--primary-700);
+            color: #fff;
+        }
+
+        /* Operator / equals - accent color */
+        .operator, .equals {
+            font-weight: 700;
+            background-color: var(--primary-500);
+            color: #fff;
+        }
+
+        /* Secondary function buttons (sqrt, log, percent) */
+        .function {
+            font-weight: 500;
+            background-color: #374151; /* gray-700 */
+            color: var(--primary-400);
+        }
+
+        /* Number buttons */
+        .number {
+            font-weight: 600;
+            font-size: 1.125rem; /* text-xl */
+            padding-top: 1rem; padding-bottom: 1rem; /* py-4 */
+            background-color: #374151; /* gray-700 */
+            color: #fff;
+        }
+
+        /* Zero spans 2 columns */
+        button[data-number="0"] { grid-column: auto / span 2; }
+
+        /* Hover states */
+        .clear:hover, .delete:hover { background-color: var(--primary-600); }
+        .operator:hover, .equals:hover { background-color: var(--primary-400); }
+        .function:hover, .number:hover { background-color: #4b5563; }
+
+        /* Light mode overrides when html has .light */
+        html.light #calculator { background-color: var(--calc-bg); }
+        html.light .display-area { background-color: var(--panel-bg); box-shadow: inset 0 -6px 20px var(--panel-shadow); }
+        html.light #previous-operand { color: var(--muted); }
+        html.light #current-operand { color: var(--text); }
+        html.light .clear { background-color: var(--primary-700); color: #fff; }
+        html.light .delete { background-color: var(--primary-700); color: #fff; }
+        html.light .operator, html.light .equals { background-color: var(--primary-500); color: #fff; }
+        html.light .function { background-color: #d1d5db; color: var(--primary-700); }
+        html.light .number { background-color: #ffffff; color: var(--text); }
+
+        /* Small accessibility tweaks */
+        button:focus { outline: 3px solid rgba(255,255,255,0.06); outline-offset: 2px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Calculator Container -->
+    <div id="calculator" class="calculator">
+
+        <!-- Mode Toggle Button -->
+        <div class="mode-toggle-container">
+            <button id="mode-toggle" class="mode-toggle btn-animation" aria-label="Toggle theme">
+                <!-- Icon will be set by JS -->
+            </button>
+        </div>
+
+        <!-- Display Area -->
+    <div class="display-area">
+            <!-- Previous Operation Display -->
+            <div id="previous-operand" class="previous-operand"></div>
+            <!-- Current Input/Result Display -->
+            <div id="current-operand" class="current-operand">0</div>
+        </div>
+
+        <!-- Button Grid -->
+        <div class="button-grid">
+
+            <!-- Advanced/Utility Buttons (AC, DEL) - Teal/Cyan Primary -->
+            <button class="clear btn-animation">AC</button>
+            <button class="delete btn-animation">&larr;</button>
+            <button data-operator="/" class="operator btn-animation">/</button>
+
+            <!-- Function Buttons (sqrt, log, power, percent) - Secondary Color with Accent Text -->
+            <button data-function="sqrt" class="function btn-animation">&radic;x</button>
+            <button data-function="log" class="function btn-animation">log</button>
+            <button data-function="power" class="function btn-animation">xʸ</button>
+            <button data-operator="*" class="operator btn-animation">*</button>
+
+            <!-- Number Buttons (7, 8, 9, 4, 5, 6, 1, 2, 3, 0, .) - Neutral Background -->
+            <button data-number="7" class="number btn-animation">7</button>
+            <button data-number="8" class="number btn-animation">8</button>
+            <button data-number="9" class="number btn-animation">9</button>
+            <button data-operator="-" class="operator btn-animation">-</button>
+
+            <button data-number="4" class="number btn-animation">4</button>
+            <button data-number="5" class="number btn-animation">5</button>
+            <button data-number="6" class="number btn-animation">6</button>
+            <button data-operator="+" class="operator btn-animation">+</button>
+
+            <button data-number="1" class="number btn-animation">1</button>
+            <button data-number="2" class="number btn-animation">2</button>
+            <button data-number="3" class="number btn-animation">3</button>
+            <button data-function="percent" class="function btn-animation">%</button>
+
+            <button data-number="0" class="number btn-animation">0</button>
+            <button data-number="." class="number btn-animation">.</button>
+            <button data-equal class="equals btn-animation">=</button>
+
+        </div>
+    </div>
+
+    <script>
+        // Global variables for the calculator state
+        let currentOperand = '';
+        let previousOperand = '';
+        let operation = undefined;
+        let waitingForSecondOperand = false;
+        
+        // Mode state (Default: Dark)
+        let isDarkMode = true;
+
+        // DOM elements
+        const htmlElement = document.documentElement;
+        const currentOperandElement = document.getElementById('current-operand');
+        const previousOperandElement = document.getElementById('previous-operand');
+        const modeToggleButton = document.getElementById('mode-toggle');
+
+        // --- Theme / Mode Logic ---
+
+        /**
+         * Toggles between dark and light modes.
+         */
+        function toggleMode() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                // Apply Dark Mode (Default)
+                htmlElement.classList.remove('light');
+                htmlElement.classList.add('dark');
+                // Use CSS variable to set body background
+                document.body.style.setProperty('--bg-body', '#0d1117');
+                modeToggleButton.innerHTML = '🌞'; // Sun icon means clicking switches to Light mode
+            } else {
+                // Apply Light Mode
+                htmlElement.classList.remove('dark');
+                htmlElement.classList.add('light');
+                // Use CSS variable to set body background
+                document.body.style.setProperty('--bg-body', '#f3f4f6');
+                modeToggleButton.innerHTML = '🌙'; // Moon icon means clicking switches to Dark mode
+            }
+        }
+        
+        /**
+         * Initializes the mode on load.
+         */
+        function initializeMode() {
+            // Initialize to dark mode
+            htmlElement.classList.add('dark');
+            isDarkMode = true;
+            modeToggleButton.innerHTML = '🌞'; 
+            document.body.style.setProperty('--bg-body', '#0d1117');
+        }
+
+        // --- Core Calculator Logic Functions (Same as previous version) ---
+
+        /**
+         * Clears all state and resets the display.
+         */
+        function clear() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = undefined;
+            waitingForSecondOperand = false;
+        }
+
+        /**
+         * Deletes the last digit from the current input.
+         */
+        function deleteDigit() {
+            currentOperand = currentOperand.toString().slice(0, -1);
+            if (currentOperand === '' || currentOperand === '-') {
+                currentOperand = '0';
+            }
+        }
+
+        /**
+         * Appends a number or decimal point to the current input.
+         * @param {string} number The digit or decimal point to append.
+         */
+        function appendNumber(number) {
+            if (waitingForSecondOperand) {
+                currentOperand = number.toString();
+                waitingForSecondOperand = false;
+                return;
+            }
+            if (number === '.' && currentOperand.includes('.')) return;
+            if (currentOperand === '0' && number !== '.') {
+                 currentOperand = number.toString();
+            } else {
+                 currentOperand = currentOperand.toString() + number.toString();
+            }
+        }
+
+        /**
+         * Handles operator selection (+, -, *, /)
+         * @param {string} operator The selected operator.
+         */
+        function chooseOperation(operator) {
+            if (currentOperand === '0' && previousOperand === '') {
+                // Allows setting the operator if only 0 is shown
+                operation = operator;
+                previousOperandElement.innerText = currentOperand + ' ' + operation;
+                return;
+            }
+
+            if (previousOperand !== '') {
+                // If there's a pending calculation, run it first
+                calculate();
+            }
+
+            operation = operator;
+            previousOperand = currentOperand;
+            waitingForSecondOperand = true;
+        }
+
+        /**
+         * Performs the calculation based on the stored operation and operands.
+         */
+        function calculate() {
+            let result;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+':
+                    result = prev + current;
+                    break;
+                case '-':
+                    result = prev - current;
+                    break;
+                case '*':
+                    result = prev * current;
+                    break;
+                case '/':
+                    if (current === 0) {
+                        currentOperand = 'Error: Div by 0';
+                        previousOperand = '';
+                        operation = undefined;
+                        return;
+                    }
+                    result = prev / current;
+                    break;
+                case '^':
+                    result = Math.pow(prev, current);
+                    break;
+                default:
+                    return;
+            }
+
+            // Fix floating point issues and limit precision
+            currentOperand = (Math.round(result * 10000000) / 10000000).toString();
+            operation = undefined;
+            previousOperand = '';
+            waitingForSecondOperand = true; // Ready for a new calculation or chaining
+        }
+
+        /**
+         * Handles advanced functions like sqrt, log, and percent.
+         * @param {string} funcName The name of the function (e.g., 'sqrt', 'log', 'percent', 'power').
+         */
+        function handleFunction(funcName) {
+            let value = parseFloat(currentOperand);
+            if (isNaN(value)) return;
+
+            let result;
+
+            switch (funcName) {
+                case 'sqrt':
+                    if (value < 0) {
+                        result = 'Error';
+                    } else {
+                        result = Math.sqrt(value);
+                    }
+                    previousOperandElement.innerText = `√(${currentOperand})`;
+                    break;
+                case 'log': // Base 10 Logarithm
+                    if (value <= 0) {
+                        result = 'Error';
+                    } else {
+                        result = Math.log10(value);
+                    }
+                    previousOperandElement.innerText = `log(${currentOperand})`;
+                    break;
+                case 'percent':
+                    result = value / 100;
+                    previousOperandElement.innerText = `${currentOperand}%`;
+                    break;
+                case 'power':
+                    // We treat this as a binary operator that sets up the 'previous'
+                    chooseOperation('^');
+                    return; // Exit here as operation is set, not calculated.
+                default:
+                    return;
+            }
+
+            if (result === 'Error') {
+                currentOperand = result;
+                previousOperand = '';
+                operation = undefined;
+            } else {
+                currentOperand = (Math.round(result * 10000000) / 10000000).toString();
+                waitingForSecondOperand = true;
+            }
+        }
+
+        /**
+         * Updates the display elements.
+         */
+        function updateDisplay() {
+            currentOperandElement.innerText = currentOperand;
+            if (operation != null) {
+                // Show the previous operand and the current operation
+                previousOperandElement.innerText = `${previousOperand} ${operation}`;
+            } else {
+                // Only show the previous calculation if it hasn't been cleared
+                // and the current operand is the result
+                if (!waitingForSecondOperand) {
+                    previousOperandElement.innerText = '';
+                }
+            }
+        }
+
+        // --- Event Listeners Setup ---
+
+        document.querySelectorAll('.number').forEach(button => {
+            button.addEventListener('click', () => {
+                appendNumber(button.dataset.number);
+                updateDisplay();
+            });
+        });
+
+        document.querySelectorAll('.operator').forEach(button => {
+            button.addEventListener('click', () => {
+                chooseOperation(button.dataset.operator);
+                updateDisplay();
+            });
+        });
+
+        document.querySelector('.equals').addEventListener('click', () => {
+            calculate();
+            updateDisplay();
+        });
+
+        document.querySelector('.clear').addEventListener('click', () => {
+            clear();
+            updateDisplay();
+        });
+
+        document.querySelector('.delete').addEventListener('click', () => {
+            deleteDigit();
+            updateDisplay();
+        });
+
+        document.querySelectorAll('.function').forEach(button => {
+            button.addEventListener('click', () => {
+                handleFunction(button.dataset.function);
+                updateDisplay();
+            });
+        });
+        
+        // Mode toggle listener
+        modeToggleButton.addEventListener('click', toggleMode);
+
+        // Initialization
+        initializeMode();
+        clear();
+        updateDisplay();
+
+        // Keyboard support 
+        document.addEventListener('keydown', (e) => {
+            let key = e.key;
+
+            if (key >= '0' && key <= '9') {
+                appendNumber(key);
+            } else if (key === '.') {
+                appendNumber('.');
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                chooseOperation(key);
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+                e.preventDefault(); // Prevent default action (e.g., form submission)
+            } else if (key === 'Backspace') {
+                deleteDigit();
+            } else if (key === 'Escape') {
+                clear();
+            } else {
+                return;
+            }
+            updateDisplay();
+        });
+
+    </script>
+</body>
+</html>
